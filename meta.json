@@ -1,0 +1,26 @@
+{
+  "$schema": "https://dl.viam.dev/module.schema.json",
+  "module_id": "bill:classifier-sensor",
+  "visibility": "private",
+  "url": "",
+  "description": "Modular sensor component: classifier-sensor",
+  "models": [
+    {
+      "api": "rdk:component:sensor",
+      "model": "bill:classifier-sensor:classifier-sensor",
+      "short_description": "Provide a short (100 characters or less) description of this model here",
+      "markdown_link": "README.md#model-billclassifier-sensorclassifier-sensor"
+    }
+  ],
+  "entrypoint": "bin/classifier-sensor",
+  "first_run": "",
+  "build": {
+    "build": "make module.tar.gz",
+    "setup": "make setup",
+    "path": "bin/module.tar.gz",
+    "arch": [
+      "linux/amd64",
+      "linux/arm64"
+    ]
+  }
+}
