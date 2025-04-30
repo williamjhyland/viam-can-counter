@@ -133,17 +133,13 @@ func (s *CanCountSensor) Readings(ctx context.Context, extra map[string]interfac
 	}
 
 	// 3) parse JSON out of the label
-	var out struct {
-		TotalCans int `json:"total_cans"`
-	}
+	var out map[string]interface{}
 	if err := json.Unmarshal([]byte(results[0].Label()), &out); err != nil {
 		return nil, fmt.Errorf("invalid JSON from vision service %q: %w", results[0].Label(), err)
 	}
 
-	// 4) return as your single reading
-	return map[string]interface{}{
-		"total_cans": out.TotalCans,
-	}, nil
+	// 4) return it directly
+	return out, nil
 }
 
 // DoCommand is required by sensor.Sensor but we don’t support any commands yet.
