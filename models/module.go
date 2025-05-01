@@ -9,6 +9,8 @@ import (
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
+	"regexp"
+	"strings"
 
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/components/sensor"
@@ -21,6 +23,7 @@ import (
 var (
 	CanCountSensorModel = resource.NewModel("bill", "classifier-sensor", "classifier-sensor")
 	errUnimplemented    = errors.New("unimplemented")
+	fenceRE             = regexp.MustCompile("(?s)```(?:json)?\\s*(\\{.*?\\})\\s*```")
 )
 
 func init() {
@@ -111,6 +114,14 @@ func (s *CanCountSensor) Reconfigure(ctx context.Context, deps resource.Dependen
 	return nil
 }
 
+func stripFences(s string) string {
+	s = strings.TrimSpace(s)
+	if m := fenceRE.FindStringSubmatch(s); len(m) == 2 {
+		return m[1]
+	}
+	return s
+}
+
 func (s *CanCountSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
 	// 1) grab a frame
 	imgBytes, _, err := s.camera.Image(ctx, "", nil)
@@ -123,7 +134,7 @@ func (s *CanCountSensor) Readings(ctx context.Context, extra map[string]interfac
 		return nil, fmt.Errorf("decode image: %w", err)
 	}
 
-	// 2) call vision (no prompt here – it’s preconfigured)
+	// 2) call vision
 	results, err := s.classifier.Classifications(ctx, img, 1, nil)
 	if err != nil {
 		return nil, fmt.Errorf("vision classification: %w", err)
@@ -132,10 +143,13 @@ func (s *CanCountSensor) Readings(ctx context.Context, extra map[string]interfac
 		return nil, errors.New("no classification result returned")
 	}
 
-	// 3) parse JSON out of the label
+	// 3) sanitize and parse JSON out of the label
+	rawLabel := results[0].Label()
+	cleaned := stripFences(rawLabel)
+
 	var out map[string]interface{}
-	if err := json.Unmarshal([]byte(results[0].Label()), &out); err != nil {
-		return nil, fmt.Errorf("invalid JSON from vision service %q: %w", results[0].Label(), err)
+	if err := json.Unmarshal([]byte(cleaned), &out); err != nil {
+		return nil, fmt.Errorf("invalid JSON from vision service %q: %w", rawLabel, err)
 	}
 
 	// 4) return it directly
